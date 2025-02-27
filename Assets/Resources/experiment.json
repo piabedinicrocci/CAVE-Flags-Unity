@@ -1,0 +1,29 @@
+{
+    "scenes": [
+      {
+        "id": 0,
+        "environment": "Escenario",
+        "prefabs": [
+          { "modelName": "FlagRed", "positionX": 10, "positionZ": 0 },
+          { "modelName": "FlagBlue", "positionX": 20, "positionZ": 40 },
+          { "modelName": "FlagBlue", "positionX": -5, "positionZ": -20 }
+        ],
+        "steps": [
+          { "target": 0, "action": 0 },
+          { "target": 1, "action": 0 },
+          { "target": 2, "action": 0 }
+        ]
+      },
+      {
+        "id": 1,
+        "environment": "Escenario",
+        "prefabs": [
+          { "modelName": "FlagBlue", "positionX": 100, "positionZ": 100 }
+        ],
+        "steps": [
+          { "target": 0, "action": 0 }
+        ]
+      }
+    ]
+}
+  
