@@ -13,10 +13,7 @@ public class ExperimentLoader : MonoBehaviour
     private int currentFlagIndex = 0;
     private GameObject currentFlag;
     private bool isPlayerOnBase = true;
-    private Vector3 currentFlagPosition;
-    private bool playerFoundFlag = false;
     private float flagInstantiatedTime = 0f;
-    private bool flagFoundTimeCalculated = false;
     private int currentIdAprendizaje = 0;
 
     private FlagLoader flagLoader;
@@ -43,18 +40,6 @@ public class ExperimentLoader : MonoBehaviour
         {
             isPlayerOnBase = true;
             Debug.Log("Jugador volvió a la base.");
-
-            if (playerFoundFlag && currentFlagIndex < flags.Count)
-            {
-                currentFlagIndex++;
-                SpawnNextFlag();
-                playerFoundFlag = false;
-
-                if (currentFlagIndex == flags.Count)
-                {
-                    Debug.Log("¡Felicidades! Has encontrado todas las banderas.");
-                }
-            }
         }
     }
 
@@ -64,22 +49,6 @@ public class ExperimentLoader : MonoBehaviour
         {
             isPlayerOnBase = false;
             Debug.Log("Jugador salió del plano.");
-
-            Vector3 playerPosition2D = new Vector3(player.position.x, 0, player.position.z);
-            Vector3 planePosition2D = new Vector3(basePlane.position.x, 0, basePlane.position.z);
-
-            if (currentFlag != null && Vector3.Distance(playerPosition2D, planePosition2D) > 1f)
-            {
-                currentFlag.SetActive(false);
-                Debug.Log("Bandera oculta.");
-            }
-
-            Vector3 flagPosition2D = new Vector3(currentFlagPosition.x, 0, currentFlagPosition.z);
-            if (Vector3.Distance(playerPosition2D, flagPosition2D) < 1f)
-            {
-                Debug.Log("Jugador llegó a la posición de la bandera.");
-                playerFoundFlag = true;
-            }
         }
     }
 
@@ -88,40 +57,51 @@ public class ExperimentLoader : MonoBehaviour
         if (!isPlayerOnBase && currentFlag != null)
         {
             Vector3 playerPosition2D = new Vector3(player.position.x, 0, player.position.z);
-            Vector3 flagPosition2D = new Vector3(currentFlagPosition.x, 0, currentFlagPosition.z);
+            Vector3 flagPosition2D = new Vector3(currentFlag.transform.position.x, 0, currentFlag.transform.position.z);
 
-            if (Vector3.Distance(playerPosition2D, flagPosition2D) < 1f && !flagFoundTimeCalculated)
+            if (Vector3.Distance(playerPosition2D, flagPosition2D) < 1f)
             {
                 float timeTaken = Time.time - flagInstantiatedTime;
                 Debug.Log($"TIEMPO QUE TARDÓ EN ENCONTRAR LA BANDERA: {timeTaken} segundos.");
-                playerFoundFlag = true;
-                flagFoundTimeCalculated = true;
                 flagLoader.UpdateFlagTimeInDatabaseLearning(timeTaken, currentIdAprendizaje, dni);
+
+                // Desactivar la bandera actual
+                currentFlag.SetActive(false);
+                currentFlag = null;
+
+                // Instanciar la siguiente bandera
+                SpawnNextFlag();
             }
         }
     }
 
     void SpawnNextFlag()
     {
-        if (currentFlagIndex < flags.Count)
+        if (currentFlagIndex >= flags.Count)
         {
-            FlagLoader.Prefab nextFlag = flags[currentFlagIndex];
-            string prefabPath = PrefabsPath + nextFlag.modelName;
-            GameObject prefabObject = Resources.Load<GameObject>(prefabPath);
+            Debug.Log("Todas las banderas han sido instanciadas y encontradas.");
+            return;
+        }
 
-            if (prefabObject != null)
-            {
-                currentFlagPosition = new Vector3(nextFlag.positionX, 3, nextFlag.positionZ);
-                currentFlag = Instantiate(prefabObject, currentFlagPosition, Quaternion.identity);
-                flagInstantiatedTime = Time.time;
-                currentIdAprendizaje = nextFlag.id;
-                Debug.Log($"Instanciado {nextFlag.modelName} con idAprendizaje {nextFlag.id} en posición {currentFlagPosition}.");
-                flagFoundTimeCalculated = false;
-            }
-            else
-            {
-                Debug.LogError($"No se encontró el prefab {nextFlag.modelName} en {PrefabsPath}.");
-            }
+        FlagLoader.Prefab flagData = flags[currentFlagIndex];
+        string prefabPath = PrefabsPath + flagData.modelName;
+        GameObject prefabObject = Resources.Load<GameObject>(prefabPath);
+
+        if (prefabObject != null)
+        {
+            Vector3 flagPosition = new Vector3(flagData.positionX, 3, flagData.positionZ);
+            currentFlag = Instantiate(prefabObject, flagPosition, Quaternion.identity);
+
+            currentIdAprendizaje = flagData.id;
+            flagInstantiatedTime = Time.time;
+
+            Debug.Log($"Instanciado {flagData.modelName} con idAprendizaje {flagData.id} en posición {flagPosition}.");
+
+            currentFlagIndex++; // Pasar a la siguiente bandera en la lista
+        }
+        else
+        {
+            Debug.LogError($"No se encontró el prefab {flagData.modelName} en {PrefabsPath}.");
         }
     }
 }

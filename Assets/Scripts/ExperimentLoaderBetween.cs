@@ -146,43 +146,42 @@ public class ExperimentLoaderBetween : MonoBehaviour
             return;
         }
 
-        System.Random random = new System.Random();
-        int firstIndex = random.Next(flags.Count);
-        int secondIndex;
-
-        do
+        // Instanciar las primeras dos banderas de la lista
+        for (int i = 0; i < 2; i++)
         {
-            secondIndex = random.Next(flags.Count);
-        } while (secondIndex == firstIndex);
+            FlagLoader.Prefab nextFlag = flags[i];
+            string prefabPath = PrefabsPath + nextFlag.modelName;
+            GameObject prefabObject = Resources.Load<GameObject>(prefabPath);
 
-        // Instanciar las dos banderas seleccionadas
-        for (int i = 0; i < flags.Count; i++)
-        {
-            if (i == firstIndex || i == secondIndex)
+            if (prefabObject != null)
             {
-                FlagLoader.Prefab nextFlag = flags[i];
-                string prefabPath = PrefabsPath + nextFlag.modelName;
-                GameObject prefabObject = Resources.Load<GameObject>(prefabPath);
                 Vector3 position = new Vector3(nextFlag.positionX, 3, nextFlag.positionZ);
                 GameObject instantiatedFlag = Instantiate(prefabObject, position, Quaternion.identity);
 
                 instantiatedFlags.Add(instantiatedFlag);
                 instantiatedFlagsMap[instantiatedFlag] = nextFlag;
                 flagsDB.Add(nextFlag);
+
                 Debug.Log($"Instanciado {nextFlag.modelName} con idAprendizaje {nextFlag.id} en posición {position}.");
-                if (i == firstIndex)
+
+                if (i == 0)
                 {
                     flag1Position = position;
-                    Debug.Log("FLAG1POS" + flag1Position);
+                    Debug.Log("FLAG1POS " + flag1Position);
                 }
-                if (i == secondIndex)
+                else
                 {
                     flag2Position = position;
-                    Debug.Log("FLAG2POS" + flag2Position);
+                    Debug.Log("FLAG2POS " + flag2Position);
                 }
+            }
+            else
+            {
+                Debug.LogError($"No se encontró el prefab {nextFlag.modelName} en {PrefabsPath}.");
             }
         }
     }
+
 
 
 }

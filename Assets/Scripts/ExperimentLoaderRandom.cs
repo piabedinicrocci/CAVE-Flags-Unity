@@ -110,23 +110,38 @@ void Update()
 
     void SpawnNextFlag()
     {
-        while (currentFlagIndex < flags.Count )
+        // Asegurar que haya al menos 2 banderas en la lista antes de intentar instanciarlas
+        if (flags.Count < 2)
         {
-            FlagLoader.Prefab nextFlag = flags[currentFlagIndex];
+            Debug.LogWarning("No hay suficientes banderas para instanciar.");
+            return;
+        }
+
+        for (int i = 0; i < 2; i++) // Instanciar exactamente las primeras 2 banderas
+        {
+            FlagLoader.Prefab nextFlag = flags[i];
             string prefabPath = PrefabsPath + nextFlag.modelName;
             GameObject prefabObject = Resources.Load<GameObject>(prefabPath);
-            currentFlagPosition = new Vector3(nextFlag.positionX, 3, nextFlag.positionZ);
-            currentFlag = Instantiate(prefabObject, currentFlagPosition, Quaternion.identity);
 
-            instantiatedFlagsMap[currentFlag] = nextFlag; // Asociar GameObject con su Prefab
+            if (prefabObject != null)
+            {
+                currentFlagPosition = new Vector3(nextFlag.positionX, 3, nextFlag.positionZ);
+                GameObject newFlag = Instantiate(prefabObject, currentFlagPosition, Quaternion.identity);
 
-            instantiatedFlags.Add(currentFlag); // Agregar la bandera a la lista
-            flagsDB.Add(nextFlag);
-            flagInstantiatedTime = Time.time;
-            currentIdAprendizaje = nextFlag.id;
-            flagFoundTimeCalculated = false;
-            Debug.Log($"Instanciado {nextFlag.modelName} con idAprendizaje {nextFlag.id} en posición {currentFlagPosition}.");
-            currentFlagIndex++;
+                instantiatedFlagsMap[newFlag] = nextFlag; // Asociar GameObject con su Prefab
+                instantiatedFlags.Add(newFlag);
+                flagsDB.Add(nextFlag);
+
+                flagInstantiatedTime = Time.time;
+                currentIdAprendizaje = nextFlag.id;
+                flagFoundTimeCalculated = false;
+
+                Debug.Log($"Instanciado {nextFlag.modelName} con idAprendizaje {nextFlag.id} en posición {currentFlagPosition}.");
+            }
+            else
+            {
+                Debug.LogError($"No se encontró el prefab {nextFlag.modelName} en {PrefabsPath}.");
+            }
         }
 
         for (int i = 0; i < 5; i++)

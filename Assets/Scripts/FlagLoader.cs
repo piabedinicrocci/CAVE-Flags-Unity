@@ -74,7 +74,7 @@ public class FlagLoader
         switch (color.ToLower())
         {
             case "azul": return "FlagBlue";
-            case "roja": return "FlagRed";
+            case "rojo": return "FlagRed";
             case "verde": return "FlagGreen";
             default:
                 Debug.LogWarning("Color de bandera desconocido: " + color);
@@ -84,9 +84,10 @@ public class FlagLoader
 
     public List<Prefab> GetFlags()
     {
-        //for (int i = 0; i < flags.Count; i++) {
-        //    Debug.Log("IDDDDDDDDD: " + flags[i].id);
-        //}
+        for (int i = 0; i < flags.Count; i++)
+        {
+            Debug.Log("IDDDDDDDDD: " + flags[i].id);
+        }
         return flags;
     }
 
