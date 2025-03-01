@@ -1,49 +1,62 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using MySql.Data.MySqlClient;
+using UnityEngine.Networking;
+using Newtonsoft.Json;
+using System.Text;
 
 public class ExperimentLoaderRandom : MonoBehaviour
 {
     private const string PrefabsPath = "Prefabs/";
+    private const string ApiUrl = "http://localhost:3000";
 
     public Transform player;
     public Transform basePlane;
     public long dni = 12345678;
 
-    private int currentFlagIndex = 0;
     private GameObject currentFlag;
     private bool isPlayerOnBase = true;
     private Vector3 currentFlagPosition;
-    private bool playerFoundFlag = false;
     private float flagInstantiatedTime = 0f;
-    private bool flagFoundTimeCalculated = false;
     private int currentIdAprendizaje = 0;
     private int flagsFounded = 0;
 
-    private FlagLoader flagLoader;
-    private List<FlagLoader.Prefab> flags;
+    private List<Prefab> flags;
 
-    private List<GameObject> instantiatedFlags = new List<GameObject>(); // Lista para almacenar las banderas instanciadas
-    private List<FlagLoader.Prefab> flagsDB = new List<FlagLoader.Prefab>();
+    private List<GameObject> instantiatedFlags = new List<GameObject>();
+    private List<Prefab> flagsDB = new List<Prefab>();
 
-    private Dictionary<GameObject, FlagLoader.Prefab> instantiatedFlagsMap = new Dictionary<GameObject, FlagLoader.Prefab>();
-
-
+    private Dictionary<GameObject, Prefab> instantiatedFlagsMap = new Dictionary<GameObject, Prefab>();
 
     void Start()
     {
-        flagLoader = new FlagLoader(dni);
-        flags = flagLoader.GetFlags();
+        StartCoroutine(LoadFlagsFromApi());
+    }
 
-        if (flags.Count > 0)
+    IEnumerator LoadFlagsFromApi()
+    {
+        string url = $"{ApiUrl}/flags/{dni}";
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
         {
-            SpawnNextFlag();
-            //PrintFlagsDB();
-        }
-        else
-        {
-            Debug.LogWarning("No hay banderas para instanciar.");
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.Success)
+            {
+                flags = JsonConvert.DeserializeObject<List<Prefab>>(webRequest.downloadHandler.text);
+
+                if (flags.Count > 0)
+                {
+                    SpawnNextFlag();
+                }
+                else
+                {
+                    Debug.LogWarning("No hay banderas para instanciar.");
+                }
+            }
+            else
+            {
+                Debug.LogError("Error al cargar las banderas: " + webRequest.error);
+            }
         }
     }
 
@@ -54,7 +67,7 @@ public class ExperimentLoaderRandom : MonoBehaviour
             isPlayerOnBase = true;
             Debug.Log("Jugador volvió a la base.");
 
-            if (isPlayerOnBase && flagsFounded == flags.Count)
+            if (flagsFounded == 2)
             {
                 Debug.Log("¡Felicidades! Has encontrado todas las banderas.");
             }
@@ -70,56 +83,85 @@ public class ExperimentLoaderRandom : MonoBehaviour
         }
     }
 
-void Update()
-{
-    if (!isPlayerOnBase && instantiatedFlags.Count > 0)
+    void Update()
     {
-        Vector3 playerPosition2D = new Vector3(player.position.x, 0, player.position.z);
-
-        foreach (var kvp in instantiatedFlagsMap)
+        if (!isPlayerOnBase && instantiatedFlags.Count > 0)
         {
-            GameObject flag = kvp.Key;
-            FlagLoader.Prefab flagData = kvp.Value;
+            Vector3 playerPosition2D = new Vector3(player.position.x, 0, player.position.z);
 
-            if (flag != null)
+            foreach (var kvp in instantiatedFlagsMap)
             {
-                Vector3 flagPosition2D = new Vector3(flag.transform.position.x, 0, flag.transform.position.z);
-                if (Vector3.Distance(playerPosition2D, flagPosition2D) < 1f)
+                GameObject flag = kvp.Key;
+                Prefab flagData = kvp.Value;
+
+                if (flag != null)
                 {
-                    float timeTaken = Time.time - flagInstantiatedTime;
-                    Debug.Log($"TIEMPO QUE TARDÓ EN ENCONTRAR LA BANDERA: {timeTaken} segundos.");
-                    playerFoundFlag = true;
-                    flagFoundTimeCalculated = true;
-                    flagsFounded++;
+                    Vector3 flagPosition2D = new Vector3(flag.transform.position.x, 0, flag.transform.position.z);
+                    if (Vector3.Distance(playerPosition2D, flagPosition2D) < 1f)
+                    {
+                        float timeTaken = Time.time - flagInstantiatedTime;
+                        Debug.Log($"TIEMPO QUE TARDÓ EN ENCONTRAR LA BANDERA: {timeTaken} segundos.");
+                        flagsFounded++;
 
-                    flagLoader.UpdateFlagTimeInDatabaseRandom(timeTaken, flagData.id, dni);
-                    flagLoader.UpdateFlagRandomInDatabase(flagData.id);
+                        StartCoroutine(UpdateFlagTimeAndRandom(timeTaken, flagData.id));
 
-                    // Eliminar la bandera del diccionario
-                    instantiatedFlagsMap.Remove(flag);
-                    //flag.SetActive(false);
-                    Destroy(flag);
-                    break;
+                        instantiatedFlagsMap.Remove(flag);
+                        Destroy(flag);
+                        break;
+                    }
                 }
             }
         }
+    }
 
+    IEnumerator UpdateFlagTimeAndRandom(float timeTaken, int flagId)
+    {
+        // Construir el cuerpo de la solicitud JSON manualmente
+        string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+
+        // Actualizar tiempo en random
+        string timeUrl = $"{ApiUrl}/flags/random/{dni}/{flagId}";
+        using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
+        {
+            timeRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            timeRequest.downloadHandler = new DownloadHandlerBuffer();
+            timeRequest.SetRequestHeader("Content-Type", "application/json");
+
+            yield return timeRequest.SendWebRequest();
+
+            if (timeRequest.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error al actualizar el tiempo: " + timeRequest.error);
+                Debug.LogError("Respuesta del servidor: " + timeRequest.downloadHandler.text);
+            }
+        }
+
+        // Actualizar f_random
+        string randomUrl = $"{ApiUrl}/flags/randomFlag/{flagId}";
+        using (UnityWebRequest randomRequest = UnityWebRequest.Put(randomUrl, ""))
+        {
+            randomRequest.method = "PUT";
+            yield return randomRequest.SendWebRequest();
+
+            if (randomRequest.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error al actualizar f_random: " + randomRequest.error);
+            }
         }
     }
 
-
     void SpawnNextFlag()
     {
-        // Asegurar que haya al menos 2 banderas en la lista antes de intentar instanciarlas
         if (flags.Count < 2)
         {
             Debug.LogWarning("No hay suficientes banderas para instanciar.");
             return;
         }
 
-        for (int i = 0; i < 2; i++) // Instanciar exactamente las primeras 2 banderas
+        for (int i = 0; i < 2; i++)
         {
-            FlagLoader.Prefab nextFlag = flags[i];
+            Prefab nextFlag = flags[i];
             string prefabPath = PrefabsPath + nextFlag.modelName;
             GameObject prefabObject = Resources.Load<GameObject>(prefabPath);
 
@@ -134,8 +176,6 @@ void Update()
 
                 flagInstantiatedTime = Time.time;
                 currentIdAprendizaje = nextFlag.id;
-                flagFoundTimeCalculated = false;
-
                 Debug.Log($"Instanciado {nextFlag.modelName} con idAprendizaje {nextFlag.id} en posición {currentFlagPosition}.");
             }
             else
@@ -146,33 +186,19 @@ void Update()
 
         for (int i = 0; i < 5; i++)
         {
-            // Seleccionar aleatoriamente si será una bandera azul o roja
             string modelNameRandom = Random.value > 0.5f ? "flagBlue" : "flagRed";
             string prefabPathRandom = PrefabsPath + modelNameRandom;
             GameObject prefabObjectRandom = Resources.Load<GameObject>(prefabPathRandom);
 
             if (prefabObjectRandom != null)
             {
-                // Generar una posición aleatoria en el rango especificado
                 float randomX = Random.Range(-65f, 65f);
                 float randomZ = Random.Range(-65f, 65f);
                 Vector3 randomPosition = new Vector3(randomX, 3, randomZ);
 
-                // Instanciar la bandera
                 GameObject flag = Instantiate(prefabObjectRandom, randomPosition, Quaternion.identity);
                 Debug.Log($"Instanciado bandera random {modelNameRandom} en posición {randomPosition}.");
             }
         }
     }
-
-    //void PrintFlagsDB()
-    //{
-    //    Debug.Log("Lista de banderas instanciadas:");
-    //    foreach (var flag in flagsDB)
-    //    {
-    //        Debug.Log("id "+flag.id);
-    //    }
-    //}
-
-
 }

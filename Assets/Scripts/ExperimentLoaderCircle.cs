@@ -1,31 +1,42 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using MySql.Data.MySqlClient;
+using UnityEngine.Networking;
+using Newtonsoft.Json;
+using System.Text;
 using System.Linq;
 
 public class ExperimentLoaderCircle : MonoBehaviour
 {
     private const string PrefabsPath = "Prefabs/";
     private const string BlueFlagPrefabName = "FlagBlue";
+    private const string ApiUrl = "http://localhost:3000"; // Reemplaza con la URL de tu API
 
     public Transform player;
     public Transform basePlane;
     public long dni = 12345678;
 
     private List<GameObject> instantiatedFlags = new List<GameObject>();
-    private Dictionary<GameObject, FlagLoader.Prefab> instantiatedFlagsMap = new Dictionary<GameObject, FlagLoader.Prefab>();
-    private List<FlagLoader.Prefab> flagsDB = new List<FlagLoader.Prefab>();
+    private Dictionary<GameObject, Prefab> instantiatedFlagsMap = new Dictionary<GameObject, Prefab>();
+    private List<Prefab> flagsDB = new List<Prefab>();
 
     private Vector3 flag1Position;
     private Vector3 flag2Position;
 
-    private FlagLoader flagLoader;
-    private List<FlagLoader.Prefab> flags;
+    private List<Prefab> flags;
 
     private float startTime;
-    private Dictionary<int, float> flagFoundTimes = new Dictionary<int, float>(); // Almacena los tiempos por ID de bandera
-    private List<int> foundFlagIds = new List<int>(); // Almacena los IDs de las banderas encontradas en orden
+    private Dictionary<int, float> flagFoundTimes = new Dictionary<int, float>();
+    private List<int> foundFlagIds = new List<int>();
+
+    [System.Serializable]
+    public class Prefab
+    {
+        public string modelName;
+        public float positionX;
+        public float positionZ;
+        public int id;
+    }
 
     void Start()
     {
@@ -34,19 +45,36 @@ public class ExperimentLoaderCircle : MonoBehaviour
             basePlane.gameObject.SetActive(false);
         }
 
-        flagLoader = new FlagLoader(dni);
-        flags = flagLoader.GetFlags();
+        StartCoroutine(LoadFlagsFromApi());
+    }
 
-        if (flags.Count >= 2)
+    IEnumerator LoadFlagsFromApi()
+    {
+        string url = $"{ApiUrl}/flags/{dni}";
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
         {
-            SpawnInitialFlags();
-            SpawnFlagsOnCircle();
-            MovePlayerToCircleCenter();
-            startTime = Time.time;
-        }
-        else
-        {
-            Debug.LogWarning("No hay suficientes banderas para instanciar.");
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.Success)
+            {
+                flags = JsonConvert.DeserializeObject<List<Prefab>>(webRequest.downloadHandler.text);
+
+                if (flags.Count >= 2)
+                {
+                    SpawnInitialFlags();
+                    SpawnFlagsOnCircle();
+                    MovePlayerToCircleCenter();
+                    startTime = Time.time;
+                }
+                else
+                {
+                    Debug.LogWarning("No hay suficientes banderas para instanciar.");
+                }
+            }
+            else
+            {
+                Debug.LogError("Error al cargar las banderas: " + webRequest.error);
+            }
         }
     }
 
@@ -66,7 +94,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
         foreach (var kvp in instantiatedFlagsMap)
         {
             GameObject flag = kvp.Key;
-            FlagLoader.Prefab flagData = kvp.Value;
+            Prefab flagData = kvp.Value;
 
             if (flag != null)
             {
@@ -84,8 +112,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
                     flagFoundTimes[flagData.id] = Time.time;
                     foundFlagIds.Add(flagData.id);
 
-                    flagLoader.UpdateFlagTimeInDatabaseCircle(timeTaken, flagData.id, dni);
-                    flagLoader.UpdateFlagCircleInDatabase(flagData.id);
+                    StartCoroutine(UpdateFlagTimeCircle(timeTaken, flagData.id));
 
                     flagsToRemove.Add(flag);
                     break;
@@ -102,6 +129,40 @@ public class ExperimentLoaderCircle : MonoBehaviour
         if (instantiatedFlagsMap.Count == 0)
         {
             Debug.Log("Jugador encontró todas las banderas exitosamente.");
+        }
+    }
+
+    IEnumerator UpdateFlagTimeCircle(float timeTaken, int flagId)
+    {
+        string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+
+        string timeUrl = $"{ApiUrl}/flags/circle/{dni}/{flagId}";
+        using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
+        {
+            timeRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            timeRequest.downloadHandler = new DownloadHandlerBuffer();
+            timeRequest.SetRequestHeader("Content-Type", "application/json");
+
+            yield return timeRequest.SendWebRequest();
+
+            if (timeRequest.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error al actualizar el tiempo: " + timeRequest.error);
+                Debug.LogError("Respuesta del servidor: " + timeRequest.downloadHandler.text);
+            }
+        }
+
+        string circleUrl = $"{ApiUrl}/flags/circleFlag/{flagId}";
+        using (UnityWebRequest circleRequest = UnityWebRequest.Put(circleUrl, ""))
+        {
+            circleRequest.method = "PUT";
+            yield return circleRequest.SendWebRequest();
+
+            if (circleRequest.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error al actualizar f_circulo: " + circleRequest.error);
+            }
         }
     }
 
@@ -170,7 +231,15 @@ public class ExperimentLoaderCircle : MonoBehaviour
 
             if (!isOverlapping)
             {
-                instantiatedFlags.Add(Instantiate(blueFlagPrefab, position, Quaternion.identity));
+                GameObject newFlag = Instantiate(blueFlagPrefab, position, Quaternion.identity);
+                instantiatedFlags.Add(newFlag);
+
+                // Find the Prefab from flags list that is at the same position.
+                Prefab flagData = flags.Find(f => Mathf.Approximately(f.positionX, position.x) && Mathf.Approximately(f.positionZ, position.z));
+                if (flagData != null)
+                {
+                    instantiatedFlagsMap[newFlag] = flagData;
+                }
             }
         }
     }
@@ -179,7 +248,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
     {
         for (int i = 0; i < 2; i++)
         {
-            FlagLoader.Prefab nextFlag = flags[i];
+            Prefab nextFlag = flags[i];
             string prefabPath = PrefabsPath + BlueFlagPrefabName;
             GameObject prefabObject = Resources.Load<GameObject>(prefabPath);
 
@@ -203,4 +272,5 @@ public class ExperimentLoaderCircle : MonoBehaviour
             }
         }
     }
+
 }

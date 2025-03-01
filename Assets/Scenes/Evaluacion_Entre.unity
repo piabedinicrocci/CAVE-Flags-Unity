@@ -874,13 +874,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1692960598}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 91b0e35140ba3594b9b63f55a4578810, type: 3}
+  m_Script: {fileID: 11500000, guid: cf7e476526480c042b89099b7c94e338, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 1692960602}
   basePlane: {fileID: 1998708320}
   dni: 12345678
-  tolerance: 1.5
 --- !u!1001 &1800493344
 PrefabInstance:
   m_ObjectHideFlags: 0

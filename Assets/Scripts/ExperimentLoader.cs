@@ -1,14 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
+using Newtonsoft.Json;
+using System.Text;
 
 public class ExperimentLoader : MonoBehaviour
 {
     private const string PrefabsPath = "Prefabs/";
+    private const string ApiUrl = "http://localhost:3000";
 
     public Transform player;
     public Transform basePlane;
-    public long dni = 12345678; // Asegúrate de actualizar este valor con el DNI correcto
+    public long dni = 12345678;
 
     private int currentFlagIndex = 0;
     private GameObject currentFlag;
@@ -16,21 +20,46 @@ public class ExperimentLoader : MonoBehaviour
     private float flagInstantiatedTime = 0f;
     private int currentIdAprendizaje = 0;
 
-    private FlagLoader flagLoader;
-    private List<FlagLoader.Prefab> flags;
+    private List<Prefab> flags;
+
+    [System.Serializable]
+    public class Prefab
+    {
+        public string modelName;
+        public float positionX;
+        public float positionZ;
+        public int id;
+    }
 
     void Start()
     {
-        flagLoader = new FlagLoader(dni);
-        flags = flagLoader.GetFlags();
+        StartCoroutine(LoadFlagsFromApi());
+    }
 
-        if (flags.Count > 0)
+    IEnumerator LoadFlagsFromApi()
+    {
+        string url = $"{ApiUrl}/flags/{dni}";
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
         {
-            SpawnNextFlag();
-        }
-        else
-        {
-            Debug.LogWarning("No hay banderas para instanciar.");
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.Success)
+            {
+                flags = JsonConvert.DeserializeObject<List<Prefab>>(webRequest.downloadHandler.text);
+
+                if (flags.Count > 0)
+                {
+                    SpawnNextFlag();
+                }
+                else
+                {
+                    Debug.LogWarning("No hay banderas para instanciar.");
+                }
+            }
+            else
+            {
+                Debug.LogError("Error al cargar las banderas: " + webRequest.error);
+            }
         }
     }
 
@@ -63,14 +92,35 @@ public class ExperimentLoader : MonoBehaviour
             {
                 float timeTaken = Time.time - flagInstantiatedTime;
                 Debug.Log($"TIEMPO QUE TARDÓ EN ENCONTRAR LA BANDERA: {timeTaken} segundos.");
-                flagLoader.UpdateFlagTimeInDatabaseLearning(timeTaken, currentIdAprendizaje, dni);
 
-                // Desactivar la bandera actual
+                StartCoroutine(UpdateFlagTimeLearning(timeTaken, currentIdAprendizaje));
+
                 currentFlag.SetActive(false);
                 currentFlag = null;
 
-                // Instanciar la siguiente bandera
                 SpawnNextFlag();
+            }
+        }
+    }
+
+    IEnumerator UpdateFlagTimeLearning(float timeTaken, int flagId)
+    {
+        string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+
+        string timeUrl = $"{ApiUrl}/flags/learning/{dni}/{flagId}";
+        using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
+        {
+            timeRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            timeRequest.downloadHandler = new DownloadHandlerBuffer();
+            timeRequest.SetRequestHeader("Content-Type", "application/json");
+
+            yield return timeRequest.SendWebRequest();
+
+            if (timeRequest.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error al actualizar el tiempo: " + timeRequest.error);
+                Debug.LogError("Respuesta del servidor: " + timeRequest.downloadHandler.text);
             }
         }
     }
@@ -83,7 +133,7 @@ public class ExperimentLoader : MonoBehaviour
             return;
         }
 
-        FlagLoader.Prefab flagData = flags[currentFlagIndex];
+        Prefab flagData = flags[currentFlagIndex];
         string prefabPath = PrefabsPath + flagData.modelName;
         GameObject prefabObject = Resources.Load<GameObject>(prefabPath);
 
@@ -97,7 +147,7 @@ public class ExperimentLoader : MonoBehaviour
 
             Debug.Log($"Instanciado {flagData.modelName} con idAprendizaje {flagData.id} en posición {flagPosition}.");
 
-            currentFlagIndex++; // Pasar a la siguiente bandera en la lista
+            currentFlagIndex++;
         }
         else
         {

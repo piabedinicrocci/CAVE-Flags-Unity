@@ -706,7 +706,7 @@ GameObject:
   - component: {fileID: 1692960603}
   - component: {fileID: 1692960605}
   - component: {fileID: 1692960607}
-  - component: {fileID: 1692960606}
+  - component: {fileID: 1692960608}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -850,20 +850,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!114 &1692960606
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1692960598}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 30c223efbabd96247894b6b3f3f520d3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 1692960602}
-  basePlane: {fileID: 1998708320}
 --- !u!114 &1692960607
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -879,6 +865,21 @@ MonoBehaviour:
   _data:
     _json: '{"declarations":{"Kind":"Object","collection":{"$content":[],"$version":"A"},"$version":"A"}}'
     _objectReferences: []
+--- !u!114 &1692960608
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692960598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fec5931d5d5866f45b7d80fdc702e57c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 1692960602}
+  basePlane: {fileID: 1998708320}
+  dni: 12345678
 --- !u!1001 &1800493344
 PrefabInstance:
   m_ObjectHideFlags: 0
