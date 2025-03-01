@@ -16,9 +16,9 @@ public class ExperimentLoaderBetween : MonoBehaviour
     private bool isPlayerOnBase = true;
 
     private Vector3 currentFlagPosition;
-    private bool playerNailFlag = false; //playerFoundFlag
+    private bool playerNailFlag = false;
     private float flagInstantiatedTime = 0f;
-    private bool flagNailTimeCalculated = false; //flagFoundTimeCalculated
+    private bool flagNailTimeCalculated = false;
     private int currentIdAprendizaje = 0;
 
     private FlagLoader flagLoader;
@@ -28,8 +28,6 @@ public class ExperimentLoaderBetween : MonoBehaviour
     private List<FlagLoader.Prefab> flagsDB = new List<FlagLoader.Prefab>();
 
     private Dictionary<GameObject, FlagLoader.Prefab> instantiatedFlagsMap = new Dictionary<GameObject, FlagLoader.Prefab>();
-
-    public float tolerance = 1.5f; // Factor de tolerancia ajustable
 
     private Vector3 flag1Position;
     private Vector3 flag2Position;
@@ -73,12 +71,11 @@ public class ExperimentLoaderBetween : MonoBehaviour
     {
         if (flag1Position != Vector3.zero && flag2Position != Vector3.zero)
         {
-            Vector3 direction = (flag2Position - flag1Position).normalized;
-            Vector3 perpendicular = new Vector3(-direction.z, 0, direction.x) * tolerance; // Vector perpendicular
+            Vector3 midpoint = (flag1Position + flag2Position) / 2;
+            float radius = 1.5f;
 
-            Debug.DrawLine(flag1Position, flag2Position, Color.green); // Línea principal
-            Debug.DrawLine(flag1Position + perpendicular, flag2Position + perpendicular, Color.blue); // Margen superior
-            Debug.DrawLine(flag1Position - perpendicular, flag2Position - perpendicular, Color.blue); // Margen inferior
+            Debug.DrawLine(flag1Position, flag2Position, Color.green); // Línea entre banderas
+            DrawCircle(midpoint, radius, Color.red); // Dibuja el círculo cada frame
         }
 
 
@@ -114,29 +111,33 @@ public class ExperimentLoaderBetween : MonoBehaviour
 
     bool IsFlagBetween(Vector3 userFlagPosition)
     {
-        // Centro de la línea entre ambas banderas instanciadas
+        // Centro del círculo entre ambas banderas
         Vector3 midpoint = (flag1Position + flag2Position) / 2;
-
-        // Vector dirección entre las banderas
-        Vector3 direction = (flag2Position - flag1Position).normalized;
-
-        // Proyectar la bandera del usuario sobre la línea entre banderas
-        Vector3 projected = flag1Position + Vector3.Project(userFlagPosition - flag1Position, direction);
-
-        // Distancia del usuario a la línea entre banderas
-        float distanceToLine = Vector3.Distance(userFlagPosition, projected);
-
-        // Verifica si la bandera del usuario está dentro del área de tolerancia
-        bool withinMargin = distanceToLine <= tolerance;
-
-        // Verifica si la bandera del usuario está entre las dos banderas en la dirección de la línea
-        float dotProduct1 = Vector3.Dot(userFlagPosition - flag1Position, direction);
-        float dotProduct2 = Vector3.Dot(userFlagPosition - flag2Position, direction);
-
-        bool isBetween = dotProduct1 > 0 && dotProduct2 < 0;
-
-        return isBetween && withinMargin;
+        float radius = 3f;
+        // Distancia entre la bandera del usuario y el centro del círculo
+        float distanceToCenter = Vector3.Distance(userFlagPosition, midpoint);
+        return distanceToCenter <= radius;
     }
+
+    void DrawCircle(Vector3 center, float radius, Color color)
+    {
+        int segments = 50; // Cuantos más segmentos, más suave será el círculo
+        float angleStep = 360f / segments;
+
+        Vector3 prevPoint = center + new Vector3(radius, 0, 0);
+        prevPoint.y = 3;
+
+        for (int i = 1; i <= segments; i++)
+        {
+            float angle = i * angleStep * Mathf.Deg2Rad;
+            Vector3 newPoint = center + new Vector3(Mathf.Cos(angle) * radius, 0, Mathf.Sin(angle) * radius);
+            newPoint.y = 3;
+
+            Debug.DrawLine(prevPoint, newPoint, color);
+            prevPoint = newPoint;
+        }
+    }
+
 
     void SpawnNextFlag()
     {

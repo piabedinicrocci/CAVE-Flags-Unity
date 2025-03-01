@@ -34,7 +34,8 @@ public class FlagLoader
             SELECT B.color, A.posicionX, A.posicionZ, A.id
             FROM APRENDIZAJE A
             JOIN BANDERA B ON A.id_bandera = B.id
-            WHERE A.dni = @dni AND DATE(A.fecha) = CURDATE()";
+            WHERE A.dni = @dni AND DATE(A.fecha) = CURDATE()
+            ORDER BY A.id ASC";
 
         try
         {
@@ -84,10 +85,11 @@ public class FlagLoader
 
     public List<Prefab> GetFlags()
     {
-        for (int i = 0; i < flags.Count; i++)
-        {
-            Debug.Log("IDDDDDDDDD: " + flags[i].id);
-        }
+        //for (int i = 0; i < flags.Count; i++)
+        //{
+        //    Debug.Log("Bandera desde la BBDD con el dni especificado y el día actual con id: " + flags[i].id);
+        //    Debug.Log("COLORRRR: " + flags[i].modelName);
+        //}
         return flags;
     }
 
@@ -228,7 +230,53 @@ public class FlagLoader
     // ------------------------- EVALUACION - CIRCUNFERENCIA -------------------------
     // -------------------------------------------------------------------------------
 
+    public void UpdateFlagTimeInDatabaseCircle(float timeTaken, int currentIdAprendizaje, long dni)
+    {
+        string connString = $"Server={Host};Port={Port};Database={Database};Uid={User};Pwd={Password};";
+        string query = @"UPDATE APRENDIZAJE SET tiempo_encontrada_circun = @timeTaken WHERE dni = @dni AND id = @currentIdAprendizaje";
 
+        try
+        {
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                conn.Open();
+                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@dni", dni);
+                    cmd.Parameters.AddWithValue("@timeTaken", timeTaken);
+                    cmd.Parameters.AddWithValue("@currentIdAprendizaje", currentIdAprendizaje);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Error al actualizar la base de datos: " + ex.Message);
+        }
+    }
+
+    public void UpdateFlagCircleInDatabase(int idAprendizaje)
+    {
+        string connString = $"Server={Host};Port={Port};Database={Database};Uid={User};Pwd={Password};";
+        string query = @"UPDATE APRENDIZAJE SET f_circunferencia = TRUE WHERE id = @idAprendizaje";
+
+        try
+        {
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                conn.Open();
+                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@idAprendizaje", idAprendizaje);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Error al actualizar f_random en la base de datos: " + ex.Message);
+        }
+    }
 
 
 

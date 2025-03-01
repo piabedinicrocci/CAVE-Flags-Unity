@@ -128,7 +128,7 @@ void Update()
                 currentFlagPosition = new Vector3(nextFlag.positionX, 3, nextFlag.positionZ);
                 GameObject newFlag = Instantiate(prefabObject, currentFlagPosition, Quaternion.identity);
 
-                instantiatedFlagsMap[newFlag] = nextFlag; // Asociar GameObject con su Prefab
+                instantiatedFlagsMap[newFlag] = nextFlag;
                 instantiatedFlags.Add(newFlag);
                 flagsDB.Add(nextFlag);
 
