@@ -10,7 +10,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
 {
     private const string PrefabsPath = "Prefabs/";
     private const string BlueFlagPrefabName = "FlagBlue";
-    private const string ApiUrl = "http://localhost:3000"; // Reemplaza con la URL de tu API
+    private const string ApiUrl = "http://localhost:3000";
 
     public Transform player;
     public Transform basePlane;
@@ -61,10 +61,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
 
                 if (flags.Count >= 2)
                 {
-                    SpawnInitialFlags();
-                    SpawnFlagsOnCircle();
-                    MovePlayerToCircleCenter();
-                    startTime = Time.time;
+                    SpawnNextFlag();
                 }
                 else
                 {
@@ -244,7 +241,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
         }
     }
 
-    void SpawnInitialFlags()
+    void SpawnNextFlag()
     {
         for (int i = 0; i < 2; i++)
         {
@@ -271,6 +268,14 @@ public class ExperimentLoaderCircle : MonoBehaviour
                 Debug.LogError($"No se encontró el prefab {nextFlag.modelName} en {PrefabsPath}.");
             }
         }
+        SpawnFlagsOnCircle();
+        // mover al jugador al centro del circulo
+        Vector3 center = (flag1Position + flag2Position) / 2;
+        center.y = player.position.y;
+        player.position = center;
+        Debug.Log("Jugador movido al centro del círculo.");
+
+        startTime = Time.time;
     }
 
 }

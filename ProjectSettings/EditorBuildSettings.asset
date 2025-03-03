@@ -4,6 +4,18 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/Aprendizaje.unity
+    guid: 93212922bb9b29f4db5402adec24881c
+  - enabled: 1
+    path: Assets/Scenes/Evaluacion_Random.unity
+    guid: 172c0d00d8bac0b41a832300d79914cb
+  - enabled: 1
+    path: Assets/Scenes/Evaluacion_Entre.unity
+    guid: 710e7d699fda11049814996364b58fa2
+  - enabled: 1
+    path: Assets/Scenes/Evaluacion_Circunferencia.unity
+    guid: 82efc8ee0c505074db85e49e0d6cd891
   m_configObjects:
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 61b4f8b0093343844876ed990adc2301, type: 2}

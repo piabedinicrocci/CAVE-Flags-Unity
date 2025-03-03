@@ -8,7 +8,7 @@ using System.Text;
 public class ExperimentLoaderBetween : MonoBehaviour
 {
     private const string PrefabsPath = "Prefabs/";
-    private const string ApiUrl = "http://localhost:3000"; // Reemplaza con la URL de tu API
+    private const string ApiUrl = "http://localhost:3000";
 
     public Transform player;
     public Transform basePlane;
