@@ -4,23 +4,18 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
 using System.Text;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
 
-public class ExperimentLoaderBetween : MonoBehaviour
+public class ExperimentLoaderBetween : FlagLoaderBase
 {
-    private const string PrefabsPath = "Prefabs/";
-    private const string ApiUrl = "http://localhost:3000";
-
-    public Transform player;
-    public Transform basePlane;
-    public long dni = 12345678;
-
+    public TextMeshProUGUI miTexto;
     private GameObject currentFlag;
 
     private Vector3 currentFlagPosition;
     private bool playerNailFlag = false;
     private float flagInstantiatedTime = 0f;
-
-    private List<Prefab> flags;
 
     private List<GameObject> instantiatedFlags = new List<GameObject>();
     private List<Prefab> flagsDB = new List<Prefab>();
@@ -30,45 +25,19 @@ public class ExperimentLoaderBetween : MonoBehaviour
     private Vector3 flag1Position;
     private Vector3 flag2Position;
 
-    [System.Serializable]
-    public class Prefab
-    {
-        public string modelName;
-        public float positionX;
-        public float positionZ;
-        public int id;
-    }
-
     void Start()
     {
-        StartCoroutine(LoadFlagsFromApi());
-    }
-
-    IEnumerator LoadFlagsFromApi()
-    {
-        string url = $"{ApiUrl}/flags/{dni}";
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+        // Encontrar todos los objetos con la etiqueta "Text"
+        GameObject[] textosGameObjects = GameObject.FindGameObjectsWithTag("Text");
+        if (textosGameObjects.Length > 0)
         {
-            yield return webRequest.SendWebRequest();
-
-            if (webRequest.result == UnityWebRequest.Result.Success)
-            {
-                flags = JsonConvert.DeserializeObject<List<Prefab>>(webRequest.downloadHandler.text);
-
-                if (flags.Count > 0)
-                {
-                    SpawnNextFlag();
-                }
-                else
-                {
-                    Debug.LogWarning("No hay banderas para instanciar.");
-                }
-            }
-            else
-            {
-                Debug.LogError("Error al cargar las banderas: " + webRequest.error);
-            }
+            // Obtener el primer objeto
+            GameObject primerTextoGameObject = textosGameObjects[0];
+            miTexto = primerTextoGameObject.GetComponent<TextMeshProUGUI>();
+            miTexto.gameObject.SetActive(false);
         }
+
+        StartCoroutine(base.LoadFlagsFromApi());
     }
 
     void OnTriggerEnter(Collider other)
@@ -85,6 +54,16 @@ public class ExperimentLoaderBetween : MonoBehaviour
         {
             Debug.Log("Jugador salió del plano.");
         }
+    }
+
+    IEnumerator MostrarEsperarYOcultarTexto()
+    {
+        miTexto.gameObject.SetActive(true);
+        yield return new WaitForSeconds(3f);
+        miTexto.gameObject.SetActive(false);
+
+        // REDIRIJO A PROXIMA ESCENA (RANDOM) después de ocultar el texto
+        SceneManager.LoadScene(3, LoadSceneMode.Single);
     }
 
     void Update()
@@ -118,6 +97,7 @@ public class ExperimentLoaderBetween : MonoBehaviour
                         float timeTaken = Time.time - flagInstantiatedTime;
                         Debug.Log($"TIEMPO QUE TARDÓ EN CLAVAR LA BANDERA: {timeTaken} segundos.");
                         Debug.Log("¡Felicidades! Clavaste la bandera correctamente!.");
+                        StartCoroutine(MostrarEsperarYOcultarTexto());
                         StartCoroutine(UpdateFlagTimeBetween(timeTaken, flagData.id));
                     }
                 }
@@ -125,13 +105,49 @@ public class ExperimentLoaderBetween : MonoBehaviour
         }
     }
 
+    //IEnumerator UpdateFlagTimeBetween(float timeTaken, int flagId)
+    //{
+    //    string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+    //    byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+
+    //    string timeUrl = $"{ApiUrl}/flags/between/{dni}/{flagId}";
+    //    using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
+    //    {
+    //        timeRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+    //        timeRequest.downloadHandler = new DownloadHandlerBuffer();
+    //        timeRequest.SetRequestHeader("Content-Type", "application/json");
+
+    //        yield return timeRequest.SendWebRequest();
+
+    //        if (timeRequest.result != UnityWebRequest.Result.Success)
+    //        {
+    //            Debug.LogError("Error al actualizar el tiempo: " + timeRequest.error);
+    //            Debug.LogError("Respuesta del servidor: " + timeRequest.downloadHandler.text);
+    //        }
+    //    }
+
+    //    string betweenUrl = $"{ApiUrl}/flags/betweenFlag/{flagId}";
+    //    using (UnityWebRequest betweenRequest = UnityWebRequest.Put(betweenUrl, ""))
+    //    {
+    //        betweenRequest.method = "PUT";
+    //        yield return betweenRequest.SendWebRequest();
+
+    //        if (betweenRequest.result != UnityWebRequest.Result.Success)
+    //        {
+    //            Debug.LogError("Error al actualizar f_entre: " + betweenRequest.error);
+    //        }
+    //    }
+    //}
+
     IEnumerator UpdateFlagTimeBetween(float timeTaken, int flagId)
     {
-        Debug.Log("TIEMPOOOOOOOO: " + timeTaken);
-
-        string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+        // Crear el objeto JSON usando JsonUtility
+        TimeData data = new TimeData();
+        data.timeTaken = timeTaken;
+        string jsonData = JsonUtility.ToJson(data);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
 
+        // Actualizar tiempo en between
         string timeUrl = $"{ApiUrl}/flags/between/{dni}/{flagId}";
         using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
         {
@@ -148,6 +164,7 @@ public class ExperimentLoaderBetween : MonoBehaviour
             }
         }
 
+        // Actualizar f_entre
         string betweenUrl = $"{ApiUrl}/flags/betweenFlag/{flagId}";
         using (UnityWebRequest betweenRequest = UnityWebRequest.Put(betweenUrl, ""))
         {
@@ -188,7 +205,7 @@ public class ExperimentLoaderBetween : MonoBehaviour
         }
     }
 
-    void SpawnNextFlag()
+    protected override void SpawnNextFlag()
     {
         if (flags.Count < 2)
         {

@@ -4,24 +4,19 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
 using System.Text;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
 
-public class ExperimentLoaderRandom : MonoBehaviour
+public class ExperimentLoaderRandom : FlagLoaderBase
 {
-    private const string PrefabsPath = "Prefabs/";
-    private const string ApiUrl = "http://localhost:3000";
-
-    public Transform player;
-    public Transform basePlane;
-    public long dni = 12345678;
-
+    public TextMeshProUGUI miTexto;
     private GameObject currentFlag;
     private bool isPlayerOnBase = true;
     private Vector3 currentFlagPosition;
     private float flagInstantiatedTime = 0f;
     private int currentIdAprendizaje = 0;
     private int flagsFounded = 0;
-
-    private List<Prefab> flags;
 
     private List<GameObject> instantiatedFlags = new List<GameObject>();
     private List<Prefab> flagsDB = new List<Prefab>();
@@ -30,34 +25,17 @@ public class ExperimentLoaderRandom : MonoBehaviour
 
     void Start()
     {
-        StartCoroutine(LoadFlagsFromApi());
-    }
-
-    IEnumerator LoadFlagsFromApi()
-    {
-        string url = $"{ApiUrl}/flags/{dni}";
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+        // Encontrar todos los objetos con la etiqueta "Text"
+        GameObject[] textosGameObjects = GameObject.FindGameObjectsWithTag("Text");
+        if (textosGameObjects.Length > 0)
         {
-            yield return webRequest.SendWebRequest();
-
-            if (webRequest.result == UnityWebRequest.Result.Success)
-            {
-                flags = JsonConvert.DeserializeObject<List<Prefab>>(webRequest.downloadHandler.text);
-
-                if (flags.Count > 0)
-                {
-                    SpawnNextFlag();
-                }
-                else
-                {
-                    Debug.LogWarning("No hay banderas para instanciar.");
-                }
-            }
-            else
-            {
-                Debug.LogError("Error al cargar las banderas: " + webRequest.error);
-            }
+            // Obtener el primer objeto
+            GameObject primerTextoGameObject = textosGameObjects[0];
+            miTexto = primerTextoGameObject.GetComponent<TextMeshProUGUI>();
+            miTexto.gameObject.SetActive(false);
         }
+
+        StartCoroutine(base.LoadFlagsFromApi());
     }
 
     void OnTriggerEnter(Collider other)
@@ -66,11 +44,6 @@ public class ExperimentLoaderRandom : MonoBehaviour
         {
             isPlayerOnBase = true;
             Debug.Log("Jugador volvió a la base.");
-
-            if (flagsFounded == 2)
-            {
-                Debug.Log("¡Felicidades! Has encontrado todas las banderas.");
-            }
         }
     }
 
@@ -81,6 +54,16 @@ public class ExperimentLoaderRandom : MonoBehaviour
             isPlayerOnBase = false;
             Debug.Log("Jugador salió del plano.");
         }
+    }
+
+    IEnumerator MostrarEsperarYOcultarTexto()
+    {
+        miTexto.gameObject.SetActive(true);
+        yield return new WaitForSeconds(3f);
+        miTexto.gameObject.SetActive(false);
+
+        // REDIRIJO A PROXIMA ESCENA (RANDOM) después de ocultar el texto
+        SceneManager.LoadScene(2, LoadSceneMode.Single);
     }
 
     void Update()
@@ -107,6 +90,12 @@ public class ExperimentLoaderRandom : MonoBehaviour
 
                         instantiatedFlagsMap.Remove(flag);
                         Destroy(flag);
+
+                        if (flagsFounded == 2)
+                        {
+                            Debug.Log("¡Felicidades! Has encontrado todas las banderas.");
+                            StartCoroutine(MostrarEsperarYOcultarTexto());
+                        }
                         break;
                     }
                 }
@@ -114,10 +103,49 @@ public class ExperimentLoaderRandom : MonoBehaviour
         }
     }
 
+    //IEnumerator UpdateFlagTimeAndRandom(float timeTaken, int flagId)
+    //{
+    //    // Construir el cuerpo de la solicitud JSON manualmente
+    //    string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+    //    byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+
+    //    // Actualizar tiempo en random
+    //    string timeUrl = $"{ApiUrl}/flags/random/{dni}/{flagId}";
+    //    using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
+    //    {
+    //        timeRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+    //        timeRequest.downloadHandler = new DownloadHandlerBuffer();
+    //        timeRequest.SetRequestHeader("Content-Type", "application/json");
+
+    //        yield return timeRequest.SendWebRequest();
+
+    //        if (timeRequest.result != UnityWebRequest.Result.Success)
+    //        {
+    //            Debug.LogError("Error al actualizar el tiempo: " + timeRequest.error);
+    //            Debug.LogError("Respuesta del servidor: " + timeRequest.downloadHandler.text);
+    //        }
+    //    }
+
+    //    // Actualizar f_random
+    //    string randomUrl = $"{ApiUrl}/flags/randomFlag/{flagId}";
+    //    using (UnityWebRequest randomRequest = UnityWebRequest.Put(randomUrl, ""))
+    //    {
+    //        randomRequest.method = "PUT";
+    //        yield return randomRequest.SendWebRequest();
+
+    //        if (randomRequest.result != UnityWebRequest.Result.Success)
+    //        {
+    //            Debug.LogError("Error al actualizar f_random: " + randomRequest.error);
+    //        }
+    //    }
+    //}
+
     IEnumerator UpdateFlagTimeAndRandom(float timeTaken, int flagId)
     {
-        // Construir el cuerpo de la solicitud JSON manualmente
-        string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+        // Crear el objeto JSON usando JsonUtility
+        TimeData data = new TimeData();
+        data.timeTaken = timeTaken;
+        string jsonData = JsonUtility.ToJson(data);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
 
         // Actualizar tiempo en random
@@ -151,7 +179,7 @@ public class ExperimentLoaderRandom : MonoBehaviour
         }
     }
 
-    void SpawnNextFlag()
+    protected override void SpawnNextFlag()
     {
         if (flags.Count < 2)
         {

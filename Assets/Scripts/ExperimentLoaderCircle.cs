@@ -5,16 +5,14 @@ using UnityEngine.Networking;
 using Newtonsoft.Json;
 using System.Text;
 using System.Linq;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
 
-public class ExperimentLoaderCircle : MonoBehaviour
+public class ExperimentLoaderCircle : FlagLoaderBase
 {
-    private const string PrefabsPath = "Prefabs/";
+    public TextMeshProUGUI miTexto;
     private const string BlueFlagPrefabName = "FlagBlue";
-    private const string ApiUrl = "http://localhost:3000";
-
-    public Transform player;
-    public Transform basePlane;
-    public long dni = 12345678;
 
     private List<GameObject> instantiatedFlags = new List<GameObject>();
     private Dictionary<GameObject, Prefab> instantiatedFlagsMap = new Dictionary<GameObject, Prefab>();
@@ -23,61 +21,39 @@ public class ExperimentLoaderCircle : MonoBehaviour
     private Vector3 flag1Position;
     private Vector3 flag2Position;
 
-    private List<Prefab> flags;
-
     private float startTime;
     private Dictionary<int, float> flagFoundTimes = new Dictionary<int, float>();
     private List<int> foundFlagIds = new List<int>();
 
-    [System.Serializable]
-    public class Prefab
-    {
-        public string modelName;
-        public float positionX;
-        public float positionZ;
-        public int id;
-    }
-
     void Start()
     {
+        // Encontrar todos los objetos con la etiqueta "Text"
+        GameObject[] textosGameObjects = GameObject.FindGameObjectsWithTag("Text");
+        if (textosGameObjects.Length > 0)
+        {
+            // Obtener el primer objeto
+            GameObject primerTextoGameObject = textosGameObjects[0];
+            miTexto = primerTextoGameObject.GetComponent<TextMeshProUGUI>();
+            miTexto.gameObject.SetActive(false);
+        }
+
         if (basePlane != null)
         {
             basePlane.gameObject.SetActive(false);
         }
 
-        StartCoroutine(LoadFlagsFromApi());
-    }
-
-    IEnumerator LoadFlagsFromApi()
-    {
-        string url = $"{ApiUrl}/flags/{dni}";
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
-        {
-            yield return webRequest.SendWebRequest();
-
-            if (webRequest.result == UnityWebRequest.Result.Success)
-            {
-                flags = JsonConvert.DeserializeObject<List<Prefab>>(webRequest.downloadHandler.text);
-
-                if (flags.Count >= 2)
-                {
-                    SpawnNextFlag();
-                }
-                else
-                {
-                    Debug.LogWarning("No hay suficientes banderas para instanciar.");
-                }
-            }
-            else
-            {
-                Debug.LogError("Error al cargar las banderas: " + webRequest.error);
-            }
-        }
+        StartCoroutine(base.LoadFlagsFromApi());
     }
 
     void Update()
     {
         CheckForFlags();
+    }
+
+    IEnumerator MostrarEsperarYOcultarTexto()
+    {
+        miTexto.gameObject.SetActive(true);
+        yield return new WaitForSeconds(3f);
     }
 
     void CheckForFlags()
@@ -125,15 +101,20 @@ public class ExperimentLoaderCircle : MonoBehaviour
 
         if (instantiatedFlagsMap.Count == 0)
         {
+            StartCoroutine(MostrarEsperarYOcultarTexto());
             Debug.Log("Jugador encontró todas las banderas exitosamente.");
         }
     }
 
     IEnumerator UpdateFlagTimeCircle(float timeTaken, int flagId)
     {
-        string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+        // Crear el objeto JSON usando JsonUtility
+        TimeData data = new TimeData();
+        data.timeTaken = timeTaken;
+        string jsonData = JsonUtility.ToJson(data);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
 
+        // Actualizar tiempo en circle
         string timeUrl = $"{ApiUrl}/flags/circle/{dni}/{flagId}";
         using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
         {
@@ -150,6 +131,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
             }
         }
 
+        // Actualizar f_circulo
         string circleUrl = $"{ApiUrl}/flags/circleFlag/{flagId}";
         using (UnityWebRequest circleRequest = UnityWebRequest.Put(circleUrl, ""))
         {
@@ -175,20 +157,20 @@ public class ExperimentLoaderCircle : MonoBehaviour
         }
     }
 
-    void MovePlayerToCircleCenter()
-    {
-        if (player != null && flag1Position != Vector3.zero && flag2Position != Vector3.zero)
-        {
-            Vector3 center = (flag1Position + flag2Position) / 2;
-            center.y = player.position.y;
-            player.position = center;
-            Debug.Log("Jugador movido al centro del círculo.");
-        }
-        else
-        {
-            Debug.LogWarning("No se pudo mover el jugador al centro del círculo.");
-        }
-    }
+    //void MovePlayerToCircleCenter()
+    //{
+    //    if (player != null && flag1Position != Vector3.zero && flag2Position != Vector3.zero)
+    //    {
+    //        Vector3 center = (flag1Position + flag2Position) / 2;
+    //        center.y = player.position.y;
+    //        player.position = center;
+    //        Debug.Log("Jugador movido al centro del círculo.");
+    //    }
+    //    else
+    //    {
+    //        Debug.LogWarning("No se pudo mover el jugador al centro del círculo.");
+    //    }
+    //}
 
     void SpawnFlagsOnCircle()
     {
@@ -241,7 +223,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
         }
     }
 
-    void SpawnNextFlag()
+    protected override void SpawnNextFlag()
     {
         for (int i = 0; i < 2; i++)
         {
@@ -272,6 +254,7 @@ public class ExperimentLoaderCircle : MonoBehaviour
         // mover al jugador al centro del circulo
         Vector3 center = (flag1Position + flag2Position) / 2;
         center.y = player.position.y;
+        Debug.Log("Centro"+center);
         player.position = center;
         Debug.Log("Jugador movido al centro del círculo.");
 

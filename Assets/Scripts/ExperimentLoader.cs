@@ -4,63 +4,33 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
 using System.Text;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
 
-public class ExperimentLoader : MonoBehaviour
+public class ExperimentLoader : FlagLoaderBase
 {
-    private const string PrefabsPath = "Prefabs/";
-    private const string ApiUrl = "http://localhost:3000";
-
-    public Transform player;
-    public Transform basePlane;
-    public long dni = 12345678;
-
+    private TextMeshProUGUI miTexto;
     private int currentFlagIndex = 0;
     private GameObject currentFlag;
     private bool isPlayerOnBase = true;
     private float flagInstantiatedTime = 0f;
     private int currentIdAprendizaje = 0;
 
-    private List<Prefab> flags;
-
-    [System.Serializable]
-    public class Prefab
-    {
-        public string modelName;
-        public float positionX;
-        public float positionZ;
-        public int id;
-    }
 
     void Start()
     {
-        StartCoroutine(LoadFlagsFromApi());
-    }
-
-    IEnumerator LoadFlagsFromApi()
-    {
-        string url = $"{ApiUrl}/flags/{dni}";
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+        // Encontrar todos los objetos con la etiqueta "Text"
+        GameObject[] textosGameObjects = GameObject.FindGameObjectsWithTag("Text");
+        if (textosGameObjects.Length > 0)
         {
-            yield return webRequest.SendWebRequest();
-
-            if (webRequest.result == UnityWebRequest.Result.Success)
-            {
-                flags = JsonConvert.DeserializeObject<List<Prefab>>(webRequest.downloadHandler.text);
-
-                if (flags.Count > 0)
-                {
-                    SpawnNextFlag();
-                }
-                else
-                {
-                    Debug.LogWarning("No hay banderas para instanciar.");
-                }
-            }
-            else
-            {
-                Debug.LogError("Error al cargar las banderas: " + webRequest.error);
-            }
+            // Obtener el primer objeto
+            GameObject primerTextoGameObject = textosGameObjects[0];
+            miTexto = primerTextoGameObject.GetComponent<TextMeshProUGUI>();
+            miTexto.gameObject.SetActive(false);
         }
+
+        StartCoroutine(base.LoadFlagsFromApi());
     }
 
     void OnTriggerEnter(Collider other)
@@ -105,7 +75,9 @@ public class ExperimentLoader : MonoBehaviour
 
     IEnumerator UpdateFlagTimeLearning(float timeTaken, int flagId)
     {
-        string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
+        TimeData data = new TimeData();
+        data.timeTaken = timeTaken;
+        string jsonData = JsonUtility.ToJson(data);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
 
         string timeUrl = $"{ApiUrl}/flags/learning/{dni}/{flagId}";
@@ -125,11 +97,22 @@ public class ExperimentLoader : MonoBehaviour
         }
     }
 
-    void SpawnNextFlag()
+    IEnumerator MostrarEsperarYOcultarTexto()
+    {
+        miTexto.gameObject.SetActive(true);
+        yield return new WaitForSeconds(3f);
+        miTexto.gameObject.SetActive(false);
+
+        // REDIRIJO A PROXIMA ESCENA (RANDOM) después de ocultar el texto
+        SceneManager.LoadScene(1, LoadSceneMode.Single);
+    }
+
+    protected override void SpawnNextFlag()
     {
         if (currentFlagIndex >= flags.Count)
         {
             Debug.Log("Todas las banderas han sido instanciadas y encontradas.");
+            StartCoroutine(MostrarEsperarYOcultarTexto());
             return;
         }
 
