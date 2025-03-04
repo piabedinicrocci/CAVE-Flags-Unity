@@ -771,7 +771,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 300, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1369900674
 MonoBehaviour:
@@ -795,8 +795,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Pasando a experimento 3
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 79459efec17a4d00a321bdcc27bbc385, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: c72c4184d9505e748a52b90236ea9cad, type: 2}
+  m_sharedMaterial: {fileID: 5035505774761734492, guid: c72c4184d9505e748a52b90236ea9cad, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -820,7 +820,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 22.05
+  m_fontSize: 22.95
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1117,8 +1117,7 @@ MonoBehaviour:
   player: {fileID: 1692960602}
   basePlane: {fileID: 1998708320}
   dni: 12345678
-  pasarNivel: 0
-  indiceNivel: 0
+  miTexto: {fileID: 0}
 --- !u!1001 &1800493344
 PrefabInstance:
   m_ObjectHideFlags: 0
