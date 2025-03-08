@@ -27,11 +27,11 @@ public class ExperimentLoaderBetween : FlagLoaderBase
 
     void Start()
     {
-        // Encontrar todos los objetos con la etiqueta "Text"
+        // Encuentra todos los objetos con la etiqueta "Text"
         GameObject[] textosGameObjects = GameObject.FindGameObjectsWithTag("Text");
         if (textosGameObjects.Length > 0)
         {
-            // Obtener el primer objeto
+            // Obtiene el primer texto (texto de pasando a experimento 3)
             GameObject primerTextoGameObject = textosGameObjects[0];
             miTexto = primerTextoGameObject.GetComponent<TextMeshProUGUI>();
             miTexto.gameObject.SetActive(false);
@@ -105,49 +105,16 @@ public class ExperimentLoaderBetween : FlagLoaderBase
         }
     }
 
-    //IEnumerator UpdateFlagTimeBetween(float timeTaken, int flagId)
-    //{
-    //    string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
-    //    byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
-
-    //    string timeUrl = $"{ApiUrl}/flags/between/{dni}/{flagId}";
-    //    using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
-    //    {
-    //        timeRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
-    //        timeRequest.downloadHandler = new DownloadHandlerBuffer();
-    //        timeRequest.SetRequestHeader("Content-Type", "application/json");
-
-    //        yield return timeRequest.SendWebRequest();
-
-    //        if (timeRequest.result != UnityWebRequest.Result.Success)
-    //        {
-    //            Debug.LogError("Error al actualizar el tiempo: " + timeRequest.error);
-    //            Debug.LogError("Respuesta del servidor: " + timeRequest.downloadHandler.text);
-    //        }
-    //    }
-
-    //    string betweenUrl = $"{ApiUrl}/flags/betweenFlag/{flagId}";
-    //    using (UnityWebRequest betweenRequest = UnityWebRequest.Put(betweenUrl, ""))
-    //    {
-    //        betweenRequest.method = "PUT";
-    //        yield return betweenRequest.SendWebRequest();
-
-    //        if (betweenRequest.result != UnityWebRequest.Result.Success)
-    //        {
-    //            Debug.LogError("Error al actualizar f_entre: " + betweenRequest.error);
-    //        }
-    //    }
-    //}
-
+    // Le pega a la API para actualizar el tiempo_plantada_entre y su flag
     IEnumerator UpdateFlagTimeBetween(float timeTaken, int flagId)
     {
-        // Crear el objeto JSON usando JsonUtility
+        // Crea el objeto JSON usando JsonUtility
         TimeData data = new TimeData();
         data.timeTaken = timeTaken;
         string jsonData = JsonUtility.ToJson(data);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
 
-        // Actualizar tiempo en between
+        // Actualiza tiempo en between
         string timeUrl = $"{ApiUrl}/flags/between/{dni}/{flagId}";
         using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
         {
@@ -164,7 +131,7 @@ public class ExperimentLoaderBetween : FlagLoaderBase
             }
         }
 
-        // Actualizar f_entre
+        // Actualiza f_entre
         string betweenUrl = $"{ApiUrl}/flags/betweenFlag/{flagId}";
         using (UnityWebRequest betweenRequest = UnityWebRequest.Put(betweenUrl, ""))
         {
@@ -205,6 +172,7 @@ public class ExperimentLoaderBetween : FlagLoaderBase
         }
     }
 
+    // Instancia las 2 primeras banderas de LoadFlagsFromApi y guarda las posiciones de cada una una para luego poder calcular el centro
     protected override void SpawnNextFlag()
     {
         if (flags.Count < 2)

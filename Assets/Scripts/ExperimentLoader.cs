@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 
+// APRENDIZAJE
 public class ExperimentLoader : FlagLoaderBase
 {
     private TextMeshProUGUI miTexto;
@@ -17,14 +18,13 @@ public class ExperimentLoader : FlagLoaderBase
     private float flagInstantiatedTime = 0f;
     private int currentIdAprendizaje = 0;
 
-
     void Start()
     {
-        // Encontrar todos los objetos con la etiqueta "Text"
+        // Encuentra todos los objetos con la etiqueta "Text"
         GameObject[] textosGameObjects = GameObject.FindGameObjectsWithTag("Text");
         if (textosGameObjects.Length > 0)
         {
-            // Obtener el primer objeto
+            // Obtiene el primer texto (texto de pasando a experimento 1)
             GameObject primerTextoGameObject = textosGameObjects[0];
             miTexto = primerTextoGameObject.GetComponent<TextMeshProUGUI>();
             miTexto.gameObject.SetActive(false);
@@ -73,6 +73,7 @@ public class ExperimentLoader : FlagLoaderBase
         }
     }
 
+    // Le pega a la API para actualizar el tiempo_encontrada_aprendizaje
     IEnumerator UpdateFlagTimeLearning(float timeTaken, int flagId)
     {
         TimeData data = new TimeData();
@@ -107,6 +108,7 @@ public class ExperimentLoader : FlagLoaderBase
         SceneManager.LoadScene(1, LoadSceneMode.Single);
     }
 
+    // Instancia todas las banderas de LoadFlagsFromApi
     protected override void SpawnNextFlag()
     {
         if (currentFlagIndex >= flags.Count)

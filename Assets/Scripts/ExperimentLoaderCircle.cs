@@ -27,11 +27,11 @@ public class ExperimentLoaderCircle : FlagLoaderBase
 
     void Start()
     {
-        // Encontrar todos los objetos con la etiqueta "Text"
+        // Encuentra todos los objetos con la etiqueta "Text"
         GameObject[] textosGameObjects = GameObject.FindGameObjectsWithTag("Text");
         if (textosGameObjects.Length > 0)
         {
-            // Obtener el primer objeto
+            // Obtiene el primer texto (texto de experimento finalizado)
             GameObject primerTextoGameObject = textosGameObjects[0];
             miTexto = primerTextoGameObject.GetComponent<TextMeshProUGUI>();
             miTexto.gameObject.SetActive(false);
@@ -106,15 +106,16 @@ public class ExperimentLoaderCircle : FlagLoaderBase
         }
     }
 
+    // Le pega a la API para actualizar el tiempo_encontrada_circun y su flag
     IEnumerator UpdateFlagTimeCircle(float timeTaken, int flagId)
     {
-        // Crear el objeto JSON usando JsonUtility
+        // Crea el objeto JSON usando JsonUtility
         TimeData data = new TimeData();
         data.timeTaken = timeTaken;
         string jsonData = JsonUtility.ToJson(data);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
 
-        // Actualizar tiempo en circle
+        // Actualiza tiempo en circle
         string timeUrl = $"{ApiUrl}/flags/circle/{dni}/{flagId}";
         using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
         {
@@ -131,7 +132,7 @@ public class ExperimentLoaderCircle : FlagLoaderBase
             }
         }
 
-        // Actualizar f_circulo
+        // Actualiza f_circulo
         string circleUrl = $"{ApiUrl}/flags/circleFlag/{flagId}";
         using (UnityWebRequest circleRequest = UnityWebRequest.Put(circleUrl, ""))
         {
@@ -223,6 +224,7 @@ public class ExperimentLoaderCircle : FlagLoaderBase
         }
     }
 
+    // Instancia las 2 primeras banderas de LoadFlagsFromApi e invoca a SpawnFlagsOnCircle que genera la circunferencia con esas 2 e instancia las demás
     protected override void SpawnNextFlag()
     {
         for (int i = 0; i < 2; i++)
@@ -251,10 +253,10 @@ public class ExperimentLoaderCircle : FlagLoaderBase
             }
         }
         SpawnFlagsOnCircle();
-        // mover al jugador al centro del circulo
+
+        // Mueve al jugador al centro del circulo
         Vector3 center = (flag1Position + flag2Position) / 2;
         center.y = player.position.y;
-        Debug.Log("Centro"+center);
         player.position = center;
         Debug.Log("Jugador movido al centro del círculo.");
 

@@ -11,6 +11,7 @@ using TMPro;
 public class ExperimentLoaderRandom : FlagLoaderBase
 {
     public TextMeshProUGUI miTexto;
+    public TextMeshProUGUI miTexto2;
     private GameObject currentFlag;
     private bool isPlayerOnBase = true;
     private Vector3 currentFlagPosition;
@@ -25,14 +26,19 @@ public class ExperimentLoaderRandom : FlagLoaderBase
 
     void Start()
     {
-        // Encontrar todos los objetos con la etiqueta "Text"
+        // Encuentra todos los objetos con la etiqueta "Text"
         GameObject[] textosGameObjects = GameObject.FindGameObjectsWithTag("Text");
         if (textosGameObjects.Length > 0)
         {
-            // Obtener el primer objeto
+            // Obtiene el primer texto (texto de pasando a experimento 2)
             GameObject primerTextoGameObject = textosGameObjects[0];
             miTexto = primerTextoGameObject.GetComponent<TextMeshProUGUI>();
             miTexto.gameObject.SetActive(false);
+
+            // Obtiene el segundo texto (texto de error porque no hay más de 2 banderas)
+            GameObject segundoTextoGameObject = textosGameObjects[1];
+            miTexto2 = segundoTextoGameObject.GetComponent<TextMeshProUGUI>();
+            miTexto2.gameObject.SetActive(false);
         }
 
         StartCoroutine(base.LoadFlagsFromApi());
@@ -103,52 +109,16 @@ public class ExperimentLoaderRandom : FlagLoaderBase
         }
     }
 
-    //IEnumerator UpdateFlagTimeAndRandom(float timeTaken, int flagId)
-    //{
-    //    // Construir el cuerpo de la solicitud JSON manualmente
-    //    string jsonData = "{\"timeTaken\":" + timeTaken.ToString() + "}";
-    //    byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
-
-    //    // Actualizar tiempo en random
-    //    string timeUrl = $"{ApiUrl}/flags/random/{dni}/{flagId}";
-    //    using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
-    //    {
-    //        timeRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
-    //        timeRequest.downloadHandler = new DownloadHandlerBuffer();
-    //        timeRequest.SetRequestHeader("Content-Type", "application/json");
-
-    //        yield return timeRequest.SendWebRequest();
-
-    //        if (timeRequest.result != UnityWebRequest.Result.Success)
-    //        {
-    //            Debug.LogError("Error al actualizar el tiempo: " + timeRequest.error);
-    //            Debug.LogError("Respuesta del servidor: " + timeRequest.downloadHandler.text);
-    //        }
-    //    }
-
-    //    // Actualizar f_random
-    //    string randomUrl = $"{ApiUrl}/flags/randomFlag/{flagId}";
-    //    using (UnityWebRequest randomRequest = UnityWebRequest.Put(randomUrl, ""))
-    //    {
-    //        randomRequest.method = "PUT";
-    //        yield return randomRequest.SendWebRequest();
-
-    //        if (randomRequest.result != UnityWebRequest.Result.Success)
-    //        {
-    //            Debug.LogError("Error al actualizar f_random: " + randomRequest.error);
-    //        }
-    //    }
-    //}
-
+    // Le pega a la API para actualizar el tiempo_encontrada_random y su flag
     IEnumerator UpdateFlagTimeAndRandom(float timeTaken, int flagId)
     {
-        // Crear el objeto JSON usando JsonUtility
+        // Crea el objeto JSON usando JsonUtility
         TimeData data = new TimeData();
         data.timeTaken = timeTaken;
         string jsonData = JsonUtility.ToJson(data);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
 
-        // Actualizar tiempo en random
+        // Actualiza tiempo en random
         string timeUrl = $"{ApiUrl}/flags/random/{dni}/{flagId}";
         using (UnityWebRequest timeRequest = new UnityWebRequest(timeUrl, "PUT"))
         {
@@ -165,7 +135,7 @@ public class ExperimentLoaderRandom : FlagLoaderBase
             }
         }
 
-        // Actualizar f_random
+        // Actualiza f_random
         string randomUrl = $"{ApiUrl}/flags/randomFlag/{flagId}";
         using (UnityWebRequest randomRequest = UnityWebRequest.Put(randomUrl, ""))
         {
@@ -179,11 +149,13 @@ public class ExperimentLoaderRandom : FlagLoaderBase
         }
     }
 
+    // Instancia las 2 primeras banderas de LoadFlagsFromApi y otras 5 más, en posiciones y colores random
     protected override void SpawnNextFlag()
     {
         if (flags.Count < 2)
         {
             Debug.LogWarning("No hay suficientes banderas para instanciar.");
+            miTexto2.gameObject.SetActive(true);
             return;
         }
 

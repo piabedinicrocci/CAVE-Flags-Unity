@@ -8,7 +8,11 @@ using UnityEngine.SceneManagement;
 public class FlagLoaderBase : MonoBehaviour
 {
     protected const string PrefabsPath = "Prefabs/";
+    // PARA WEB Y ESCRITORIO
     protected const string ApiUrl = "http://localhost:3000";
+    // PARA APK ANDROID (reemplazar IP)
+    //protected const string ApiUrl = "http://192.168.0.101:3000";
+
 
     public Transform player;
     public Transform basePlane;
@@ -37,6 +41,7 @@ public class FlagLoaderBase : MonoBehaviour
         public long dni;
     }
 
+    // Obtiene el dni pegandole a la API para saber con qué paciente realizar el experimento
     protected IEnumerator GetDniFromApi()
     {
         string url = $"{ApiUrl}/config/dni";
@@ -64,6 +69,7 @@ public class FlagLoaderBase : MonoBehaviour
         }
     }
 
+    // Obtiene las banderas a instanciar durante el Aprendizaje (ExperimentLoader) para el dni del paciente
     protected IEnumerator LoadFlagsFromApi()
     {
         yield return StartCoroutine(GetDniFromApi());
@@ -93,6 +99,9 @@ public class FlagLoaderBase : MonoBehaviour
         }
     }
 
+    // Cada hijo tiene una implementación distinta. ExperimentLoader (Aprendizaje), solo instancia todas las banderas de LoadFlagsFromApi.
+    // Los 3 experimentos tienen en común que instancian las 2 primeras banderas de LoadFlagsFromApi y luego cada uno tiene una 
+    // implementación distinta dependiendo del experimento.
     protected virtual void SpawnNextFlag()
     {
     }
